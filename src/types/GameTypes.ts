@@ -124,3 +124,61 @@ export const ZOMBIE_CONFIG = {
     name: 'Spitter'
   }
 };
+
+export enum WeaponType {
+  LASER = 'laser',
+  FLAME = 'flame'
+}
+
+export interface Projectile {
+  id: string;
+  type: WeaponType;
+  position: Position;
+  velocity: Velocity;
+  damage: number;
+  lifetime: number;
+  maxLifetime: number;
+  size: number;
+}
+
+export interface FlameParticle {
+  id: string;
+  position: Position;
+  velocity: Velocity;
+  size: number;
+  opacity: number;
+  lifetime: number;
+  damage: number;
+}
+
+export interface WeaponState {
+  energy: number;
+  maxEnergy: number;
+  laserCooldown: number;
+  flameCooldown: number;
+  lastLaserFire: number;
+  lastFlameUse: number;
+}
+
+export const WEAPON_CONFIG = {
+  [WeaponType.LASER]: {
+    energyCost: 5,
+    damage: 25,
+    cooldown: 200,
+    speed: 8,
+    lifetime: 1000,
+    size: 3,
+    color: '#00ffff',
+    name: 'Laser'
+  },
+  [WeaponType.FLAME]: {
+    energyCost: 3,
+    damage: 15,
+    cooldown: 100,
+    speed: 4,
+    lifetime: 600,
+    size: 6,
+    color: '#ff4500',
+    name: 'Flamethrower'
+  }
+};

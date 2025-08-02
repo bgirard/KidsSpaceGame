@@ -1,0 +1,100 @@
+.weapon-ui {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ffff;
+  border-radius: 10px;
+  padding: 15px;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  min-width: 250px;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 10px rgba(0, 255, 255, 0.1);
+  z-index: 100;
+}
+
+.weapon-section {
+  margin-bottom: 15px;
+}
+
+.weapon-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #cccccc;
+}
+
+.weapon-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.weapon-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weapon-bar {
+  flex: 1;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.weapon-bar.energy {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.energy-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px currentColor;
+  border-radius: 5px;
+}
+
+.weapon-text {
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+  min-width: 60px;
+  text-align: right;
+}
+
+.weapons-info {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 10px;
+}
+
+.weapon-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.weapon-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.control-key {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.control-weapon {
+  color: #cccccc;
+}

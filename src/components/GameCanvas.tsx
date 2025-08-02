@@ -4,11 +4,15 @@ import ResourceNode from './ResourceNode';
 import ResourceUI from './ResourceUI';
 import AlienZombie from './AlienZombie';
 import HealthUI from './HealthUI';
-import { Position, Velocity, ResourceNode as ResourceNodeType, AlienZombie as AlienZombieType } from '../types/GameTypes';
+import WeaponUI from './WeaponUI';
+import Projectile from './Projectile';
+import { Position, Velocity, ResourceNode as ResourceNodeType, AlienZombie as AlienZombieType, Projectile as ProjectileType, FlameParticle, WeaponType } from '../types/GameTypes';
 import { useResourceManager } from '../hooks/useResourceManager';
 import { useHealthSystem } from '../hooks/useHealthSystem';
+import { useWeaponSystem } from '../hooks/useWeaponSystem';
 import { generateResourceNodes, isWithinCollectionRange, updateResourceNodeRegeneration, collectFromNode, calculateDistance } from '../utils/gameUtils';
-import { generateZombies, updateZombieAI, updateZombiePosition, canZombieAttack, zombieAttack } from '../utils/zombieUtils';
+import { generateZombies, updateZombieAI, updateZombiePosition, canZombieAttack, zombieAttack, damageZombie } from '../utils/zombieUtils';
+import { createProjectile, createFlameParticles, updateProjectile, updateFlameParticle, checkProjectileZombieCollision, checkFlameZombieCollision, isProjectileOutOfBounds, isFlameParticleExpired } from '../utils/weaponUtils';
 import './GameCanvas.css';
 
 const GameCanvas: React.FC = () => {
@@ -20,8 +24,11 @@ const GameCanvas: React.FC = () => {
   const [collectedNodes, setCollectedNodes] = useState<Set<string>>(new Set());
   const [zombies, setZombies] = useState<AlienZombieType[]>([]);
   const [attackingZombies, setAttackingZombies] = useState<Set<string>>(new Set());
+  const [projectiles, setProjectiles] = useState<ProjectileType[]>([]);
+  const [flameParticles, setFlameParticles] = useState<FlameParticle[]>([]);
   const { inventory, collectResource } = useResourceManager();
   const { health, takeDamage, rechargeShield, isDead, healthPercentage, shieldPercentage } = useHealthSystem();
+  const { weaponState, fireWeapon, rechargeEnergy, energyPercentage } = useWeaponSystem();
 
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
@@ -79,6 +86,29 @@ const GameCanvas: React.FC = () => {
               const radians = (newAngle - 90) * (Math.PI / 180);
               newVx += Math.cos(radians) * THRUST_POWER;
               newVy += Math.sin(radians) * THRUST_POWER;
+            }
+            
+            if (keys.has('Space')) {
+              if (fireWeapon(WeaponType.LASER)) {
+                const newProjectile = createProjectile(
+                  WeaponType.LASER,
+                  rocketPosition,
+                  newAngle,
+                  `laser-${Date.now()}`
+                );
+                setProjectiles(prev => [...prev, newProjectile]);
+              }
+            }
+            
+            if (keys.has('KeyF')) {
+              if (fireWeapon(WeaponType.FLAME)) {
+                const newFlameParticles = createFlameParticles(
+                  rocketPosition,
+                  newAngle,
+                  5
+                );
+                setFlameParticles(prev => [...prev, ...newFlameParticles]);
+              }
             }
 
             newVx *= FRICTION;
@@ -158,10 +188,58 @@ const GameCanvas: React.FC = () => {
       if (health.shield < health.maxShield) {
         rechargeShield(0.2);
       }
+      
+      if (weaponState.energy < weaponState.maxEnergy) {
+        rechargeEnergy(0.5);
+      }
+      
+      setProjectiles(prevProjectiles => {
+        return prevProjectiles
+          .map(projectile => updateProjectile(projectile, 16))
+          .filter(projectile => {
+            if (isProjectileOutOfBounds(projectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+              return false;
+            }
+            
+            let hit = false;
+            setZombies(prevZombies => {
+              return prevZombies.map(zombie => {
+                if (checkProjectileZombieCollision(projectile, zombie)) {
+                  hit = true;
+                  return damageZombie(zombie, projectile.damage);
+                }
+                return zombie;
+              });
+            });
+            
+            return !hit;
+          });
+      });
+      
+      setFlameParticles(prevParticles => {
+        return prevParticles
+          .map(particle => updateFlameParticle(particle, 16))
+          .filter(particle => {
+            if (isFlameParticleExpired(particle)) {
+              return false;
+            }
+            
+            setZombies(prevZombies => {
+              return prevZombies.map(zombie => {
+                if (checkFlameZombieCollision(particle, zombie)) {
+                  return damageZombie(zombie, particle.damage / 10); // Reduced damage per tick
+                }
+                return zombie;
+              });
+            });
+            
+            return true; // Flame particles don't disappear on hit
+          });
+      });
     }, 16);
 
     return () => clearInterval(gameLoop);
-  }, [keys, rocketVelocity.vx, rocketVelocity.vy, rocketPosition, collectResource, takeDamage, rechargeShield, health.shield, health.maxShield]);
+  }, [keys, rocketVelocity.vx, rocketVelocity.vy, rocketPosition, collectResource, takeDamage, rechargeShield, health.shield, health.maxShield, weaponState.energy, weaponState.maxEnergy, fireWeapon, rechargeEnergy]);
 
   if (isDead) {
     return (
@@ -179,9 +257,10 @@ const GameCanvas: React.FC = () => {
     <div className="game-canvas">
       <HealthUI health={health} healthPercentage={healthPercentage} shieldPercentage={shieldPercentage} />
       <ResourceUI inventory={inventory} />
+      <WeaponUI weaponState={weaponState} energyPercentage={energyPercentage} />
       <div className="instructions">
         <p>Use WASD or Arrow Keys to control the rocket</p>
-        <p>W/↑: Thrust | A/←: Rotate Left | D/→: Rotate Right | Collect resources, avoid alien zombies!</p>
+        <p>W/↑: Thrust | A/←: Rotate Left | D/→: Rotate Right | SPACE: Laser | F: Flame</p>
       </div>
       <div className="space">
         <Rocket x={rocketPosition.x} y={rocketPosition.y} angle={rocketAngle} />
@@ -197,6 +276,30 @@ const GameCanvas: React.FC = () => {
             key={zombie.id} 
             zombie={zombie} 
             isAttacking={attackingZombies.has(zombie.id)}
+          />
+        ))}
+        {projectiles.map(projectile => (
+          <Projectile 
+            key={projectile.id} 
+            projectile={projectile}
+          />
+        ))}
+        {flameParticles.map(particle => (
+          <div
+            key={particle.id}
+            className="flame-particle"
+            style={{
+              position: 'absolute',
+              left: particle.position.x,
+              top: particle.position.y,
+              width: particle.size,
+              height: particle.size,
+              background: `radial-gradient(circle, rgba(255,69,0,${particle.opacity}) 0%, rgba(255,140,0,${particle.opacity * 0.7}) 50%, transparent 100%)`,
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 6
+            }}
           />
         ))}
       </div>

@@ -1,0 +1,69 @@
+.projectile {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 7;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.projectile.laser {
+  background: radial-gradient(circle, #00ffff 0%, #0088ff 50%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 
+    0 0 8px #00ffff,
+    0 0 16px #00ffff,
+    0 0 24px #00ffff;
+  animation: laser-pulse 0.1s ease-in-out infinite alternate;
+}
+
+.projectile.flame {
+  background: radial-gradient(circle, #ff4500 0%, #ff6500 40%, #ff8500 80%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 
+    0 0 6px #ff4500,
+    0 0 12px #ff6500;
+  animation: flame-flicker 0.15s ease-in-out infinite;
+}
+
+@keyframes laser-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    box-shadow: 
+      0 0 8px #00ffff,
+      0 0 16px #00ffff,
+      0 0 24px #00ffff;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 
+      0 0 12px #00ffff,
+      0 0 24px #00ffff,
+      0 0 36px #00ffff;
+  }
+}
+
+@keyframes flame-flicker {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
+    background: radial-gradient(circle, #ff4500 0%, #ff6500 40%, #ff8500 80%, transparent 100%);
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+    background: radial-gradient(circle, #ff6500 0%, #ff4500 40%, #ff8500 80%, transparent 100%);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.95) rotate(-3deg);
+    background: radial-gradient(circle, #ff8500 0%, #ff4500 40%, #ff6500 80%, transparent 100%);
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(1.05) rotate(2deg);
+    background: radial-gradient(circle, #ff4500 0%, #ff8500 40%, #ff6500 80%, transparent 100%);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.0) rotate(0deg);
+    background: radial-gradient(circle, #ff6500 0%, #ff4500 40%, #ff8500 80%, transparent 100%);
+  }
+}
