@@ -8,6 +8,41 @@
   font-family: 'Arial', sans-serif;
 }
 
+.game-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.game-title {
+  font-size: 36px;
+  color: #00ffff;
+  text-shadow: 0 0 20px #00ffff, 0 0 40px #0099cc;
+  margin: 0 0 5px 0;
+  font-weight: bold;
+  letter-spacing: 3px;
+  animation: title-glow 3s ease-in-out infinite alternate;
+}
+
+.game-credits {
+  margin-bottom: 15px;
+}
+
+.game-credits p {
+  font-size: 12px;
+  color: #cccccc;
+  margin: 0;
+  opacity: 0.8;
+}
+
+@keyframes title-glow {
+  0% {
+    text-shadow: 0 0 20px #00ffff, 0 0 40px #0099cc;
+  }
+  100% {
+    text-shadow: 0 0 30px #00ffff, 0 0 50px #0099cc, 0 0 60px #0066aa;
+  }
+}
+
 .instructions {
   color: white;
   text-align: center;
@@ -167,5 +202,95 @@
   }
   100% {
     text-shadow: 0 0 30px #00ff00, 0 0 40px #00aa00;
+  }
+}
+
+.password-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: white;
+  text-align: center;
+}
+
+.password-container {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 40px;
+  border-radius: 15px;
+  border: 2px solid #00ffff;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  max-width: 400px;
+  width: 100%;
+}
+
+.password-container h2 {
+  color: #00ffff;
+  font-size: 24px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px #00ffff;
+}
+
+.password-container p {
+  color: #cccccc;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.password-input {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #00ffff;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.password-input:focus {
+  outline: none;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+.password-input::placeholder {
+  color: #888888;
+}
+
+.password-button {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  background: linear-gradient(45deg, #00aaaa, #00ffff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.password-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
+}
+
+.password-error {
+  color: #ff4444;
+  font-size: 14px;
+  margin-top: 15px;
+  text-shadow: 0 0 10px #ff4444;
+  animation: error-pulse 2s ease-in-out infinite;
+}
+
+@keyframes error-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
   }
 }

@@ -18,6 +18,9 @@ import { createProjectile, createFlameParticles, updateProjectile, updateFlamePa
 import './GameCanvas.css';
 
 const GameCanvas: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
   const [rocketPosition, setRocketPosition] = useState<Position>({ x: 400, y: 300 });
   const [rocketVelocity, setRocketVelocity] = useState<Velocity>({ vx: 0, vy: 0 });
   const [rocketAngle, setRocketAngle] = useState<number>(0);
@@ -44,6 +47,17 @@ const GameCanvas: React.FC = () => {
   const MAX_PROJECTILES = 50; // Limit total projectiles
   const MAX_FLAME_PARTICLES = 100; // Limit total flame particles
   const MAX_BOSS_PROJECTILES = 20; // Limit boss projectiles
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === 'GAMEKEY') {
+      setIsAuthenticated(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password. Try again.');
+      setPasswordInput('');
+    }
+  };
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     setKeys(prev => new Set(prev).add(event.code));
@@ -422,6 +436,40 @@ const GameCanvas: React.FC = () => {
     return () => clearInterval(gameLoop);
   }, [keys, rocketVelocity.vx, rocketVelocity.vy, rocketPosition, collectResource, takeDamage, rechargeShield, health.shield, health.maxShield, weaponState.energy, weaponState.maxEnergy, fireWeapon, rechargeEnergy, boss]);
 
+  // Password screen
+  if (!isAuthenticated) {
+    return (
+      <div className="game-canvas">
+        <div className="password-screen">
+          <div className="game-header">
+            <h1 className="game-title">GALACTIC UNDEAD</h1>
+            <div className="game-credits">
+              <p>Created by Benoit, Felix, Savannah</p>
+            </div>
+          </div>
+          <div className="password-container">
+            <h2>Access Required</h2>
+            <p>Enter the game password to continue:</p>
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter password..."
+                className="password-input"
+                autoFocus
+              />
+              <button type="submit" className="password-button">
+                Enter Game
+              </button>
+            </form>
+            {passwordError && <div className="password-error">{passwordError}</div>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isDead) {
     return (
       <div className="game-canvas">
@@ -456,6 +504,12 @@ const GameCanvas: React.FC = () => {
 
   return (
     <div className="game-canvas">
+      <div className="game-header">
+        <h1 className="game-title">GALACTIC UNDEAD</h1>
+        <div className="game-credits">
+          <p>Created by Benoit, Felix, Savannah</p>
+        </div>
+      </div>
       <HealthUI health={health} healthPercentage={healthPercentage} shieldPercentage={shieldPercentage} />
       <ResourceUI inventory={inventory} />
       <WeaponUI weaponState={weaponState} energyPercentage={energyPercentage} />
