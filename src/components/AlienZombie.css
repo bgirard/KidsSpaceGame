@@ -1,0 +1,115 @@
+.alien-zombie {
+  position: absolute;
+  width: 40px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 8;
+  transition: transform 0.1s ease;
+}
+
+.alien-zombie.chasing {
+  animation: shake 0.3s ease-in-out infinite;
+}
+
+.alien-zombie.attacking {
+  animation: attack-pulse 0.5s ease-in-out infinite;
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.alien-zombie.dead {
+  opacity: 0.3;
+  filter: grayscale(100%);
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.zombie-icon {
+  font-size: 28px;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 6px var(--zombie-color));
+  animation: zombie-float 2s ease-in-out infinite;
+}
+
+.alien-zombie.chasing .zombie-icon {
+  animation: zombie-chase 0.5s ease-in-out infinite;
+}
+
+.health-bar {
+  width: 35px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.health-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 3px currentColor;
+}
+
+.attack-indicator {
+  position: absolute;
+  top: -20px;
+  font-size: 16px;
+  animation: attack-explosion 0.3s ease-out;
+  pointer-events: none;
+}
+
+@keyframes zombie-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(2deg);
+  }
+}
+
+@keyframes zombie-chase {
+  0%, 100% {
+    transform: translateY(0px) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(5deg);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateX(0);
+  }
+  25% {
+    transform: translate(-50%, -50%) translateX(-2px);
+  }
+  75% {
+    transform: translate(-50%, -50%) translateX(2px);
+  }
+}
+
+@keyframes attack-pulse {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 6px var(--zombie-color));
+  }
+  50% {
+    filter: brightness(1.5) drop-shadow(0 0 12px var(--zombie-color));
+  }
+  100% {
+    filter: brightness(1) drop-shadow(0 0 6px var(--zombie-color));
+  }
+}
+
+@keyframes attack-explosion {
+  0% {
+    transform: scale(0.5) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5) rotate(180deg);
+    opacity: 0;
+  }
+}

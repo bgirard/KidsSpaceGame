@@ -58,3 +58,69 @@ export const RESOURCE_CONFIG = {
     name: 'Rare Metals'
   }
 };
+
+export enum ZombieType {
+  CRAWLER = 'crawler',
+  HUNTER = 'hunter',
+  BRUTE = 'brute',
+  SPITTER = 'spitter'
+}
+
+export interface AlienZombie {
+  id: string;
+  type: ZombieType;
+  position: Position;
+  velocity: Velocity;
+  health: number;
+  maxHealth: number;
+  speed: number;
+  damage: number;
+  attackRange: number;
+  lastAttack: number;
+  attackCooldown: number;
+  target: Position | null;
+  state: 'idle' | 'chasing' | 'attacking' | 'dead';
+}
+
+export const ZOMBIE_CONFIG = {
+  [ZombieType.CRAWLER]: {
+    emoji: '🧟',
+    health: 30,
+    speed: 0.8,
+    damage: 10,
+    attackRange: 25,
+    attackCooldown: 2000,
+    color: '#228B22',
+    name: 'Crawler'
+  },
+  [ZombieType.HUNTER]: {
+    emoji: '👽',
+    health: 50,
+    speed: 1.5,
+    damage: 15,
+    attackRange: 30,
+    attackCooldown: 1500,
+    color: '#FF4500',
+    name: 'Hunter'
+  },
+  [ZombieType.BRUTE]: {
+    emoji: '👹',
+    health: 100,
+    speed: 0.5,
+    damage: 25,
+    attackRange: 35,
+    attackCooldown: 3000,
+    color: '#8B0000',
+    name: 'Brute'
+  },
+  [ZombieType.SPITTER]: {
+    emoji: '🛸',
+    health: 40,
+    speed: 0.6,
+    damage: 12,
+    attackRange: 80,
+    attackCooldown: 2500,
+    color: '#9932CC',
+    name: 'Spitter'
+  }
+};

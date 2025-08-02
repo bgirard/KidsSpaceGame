@@ -53,3 +53,54 @@
   background-size: 200px 100px;
   opacity: 0.8;
 }
+
+.game-over {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: white;
+  text-align: center;
+  background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+}
+
+.game-over h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #ff4444;
+  text-shadow: 0 0 20px #ff4444;
+  animation: death-glow 2s ease-in-out infinite alternate;
+}
+
+.game-over p {
+  font-size: 24px;
+  margin-bottom: 30px;
+  color: #cccccc;
+}
+
+.game-over button {
+  padding: 15px 30px;
+  font-size: 18px;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  transition: all 0.3s ease;
+}
+
+.game-over button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+@keyframes death-glow {
+  0% {
+    text-shadow: 0 0 20px #ff4444;
+  }
+  100% {
+    text-shadow: 0 0 30px #ff4444, 0 0 40px #ff6666;
+  }
+}
