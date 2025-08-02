@@ -3,15 +3,17 @@ import Rocket from './Rocket';
 import ResourceNode from './ResourceNode';
 import ResourceUI from './ResourceUI';
 import AlienZombie from './AlienZombie';
+import BossZombie from './BossZombie';
 import HealthUI from './HealthUI';
 import WeaponUI from './WeaponUI';
 import Projectile from './Projectile';
-import { Position, Velocity, ResourceNode as ResourceNodeType, AlienZombie as AlienZombieType, Projectile as ProjectileType, FlameParticle, WeaponType } from '../types/GameTypes';
+import { Position, Velocity, ResourceNode as ResourceNodeType, AlienZombie as AlienZombieType, BossZombie as BossZombieType, BossProjectile, Projectile as ProjectileType, FlameParticle, WeaponType } from '../types/GameTypes';
 import { useResourceManager } from '../hooks/useResourceManager';
 import { useHealthSystem } from '../hooks/useHealthSystem';
 import { useWeaponSystem } from '../hooks/useWeaponSystem';
 import { generateResourceNodes, isWithinCollectionRange, updateResourceNodeRegeneration, collectFromNode, calculateDistance } from '../utils/gameUtils';
 import { generateZombies, updateZombieAI, updateZombiePosition, canZombieAttack, zombieAttack, damageZombie } from '../utils/zombieUtils';
+import { createBoss, updateBossPhase, updateBossAI, updateBossPosition, canBossAttack, bossAttack, createBossProjectile, updateBossProjectile, isBossProjectileExpired, damageBoss } from '../utils/bossUtils';
 import { createProjectile, createFlameParticles, updateProjectile, updateFlameParticle, checkProjectileZombieCollision, checkFlameZombieCollision, isProjectileOutOfBounds, isFlameParticleExpired } from '../utils/weaponUtils';
 import './GameCanvas.css';
 
@@ -23,7 +25,10 @@ const GameCanvas: React.FC = () => {
   const [resourceNodes, setResourceNodes] = useState<ResourceNodeType[]>([]);
   const [collectedNodes, setCollectedNodes] = useState<Set<string>>(new Set());
   const [zombies, setZombies] = useState<AlienZombieType[]>([]);
+  const [boss, setBoss] = useState<BossZombieType | null>(null);
+  const [bossProjectiles, setBossProjectiles] = useState<BossProjectile[]>([]);
   const [attackingZombies, setAttackingZombies] = useState<Set<string>>(new Set());
+  const [isBossAttacking, setIsBossAttacking] = useState<boolean>(false);
   const [projectiles, setProjectiles] = useState<ProjectileType[]>([]);
   const [flameParticles, setFlameParticles] = useState<FlameParticle[]>([]);
   const { inventory, collectResource } = useResourceManager();
@@ -195,8 +200,55 @@ const GameCanvas: React.FC = () => {
           updatedZombies.push(updatedZombie);
         });
         
+        // Check if all zombies are dead and spawn boss
+        if (updatedZombies.length === 0 && boss === null) {
+          console.log('All zombies defeated! Spawning boss...');
+          const newBoss = createBoss(CANVAS_WIDTH, CANVAS_HEIGHT, rocketPosition);
+          setBoss(newBoss);
+        }
+        
         return updatedZombies;
       });
+      
+      // Update boss if it exists
+      if (boss && boss.health > 0) {
+        setBoss(prevBoss => {
+          if (!prevBoss) return null;
+          
+          let updatedBoss = updateBossPhase(prevBoss);
+          updatedBoss = updateBossAI(updatedBoss, rocketPosition, 16);
+          updatedBoss = updateBossPosition(updatedBoss, 16, CANVAS_WIDTH, CANVAS_HEIGHT);
+          
+          if (canBossAttack(updatedBoss)) {
+            const distanceToRocket = calculateDistance(updatedBoss.position, rocketPosition);
+            if (distanceToRocket <= updatedBoss.attackRange) {
+              setIsBossAttacking(true);
+              
+              // Different attack patterns based on phase
+              if (updatedBoss.phase === 1) {
+                // Phase 1: Direct damage
+                takeDamage(updatedBoss.damage);
+              } else if (updatedBoss.phase === 2 || updatedBoss.phase === 4) {
+                // Phase 2 & 4: Shoot projectiles
+                const projectile = createBossProjectile(updatedBoss, rocketPosition, 'energy_blast');
+                setBossProjectiles(prev => [...prev, projectile]);
+              } else if (updatedBoss.phase === 3 || updatedBoss.phase === 4) {
+                // Phase 3 & 4: Area damage shockwave
+                const shockwave = createBossProjectile(updatedBoss, rocketPosition, 'shockwave');
+                setBossProjectiles(prev => [...prev, shockwave]);
+              }
+              
+              updatedBoss = bossAttack(updatedBoss);
+              
+              setTimeout(() => {
+                setIsBossAttacking(false);
+              }, 500);
+            }
+          }
+          
+          return updatedBoss;
+        });
+      }
       
       if (health.shield < health.maxShield) {
         rechargeShield(0.2);
@@ -218,6 +270,8 @@ const GameCanvas: React.FC = () => {
           }
           
           let hit = false;
+          
+          // Check collision with regular zombies
           setZombies(prevZombies => {
             return prevZombies.map(zombie => {
               if (checkProjectileZombieCollision(updatedProjectile, zombie) && zombie.health > 0) {
@@ -227,6 +281,15 @@ const GameCanvas: React.FC = () => {
               return zombie;
             });
           });
+          
+          // Check collision with boss
+          if (!hit && boss && boss.health > 0) {
+            const distanceToBoss = calculateDistance(updatedProjectile.position, boss.position);
+            if (distanceToBoss < 40) { // Boss has larger hit radius
+              hit = true;
+              setBoss(prevBoss => prevBoss ? damageBoss(prevBoss, updatedProjectile.damage) : null);
+            }
+          }
           
           // Only keep projectile if it didn't hit anything
           if (!hit) {
@@ -261,6 +324,15 @@ const GameCanvas: React.FC = () => {
               });
             });
             
+            // Check collision with boss
+            if (!shouldRemove && boss && boss.health > 0) {
+              const distanceToBoss = calculateDistance(particle.position, boss.position);
+              if (distanceToBoss < 45) { // Boss flame collision
+                shouldRemove = Math.random() < 0.5; // 50% chance to remove on boss hit
+                setBoss(prevBoss => prevBoss ? damageBoss(prevBoss, particle.damage / 10) : null);
+              }
+            }
+            
             if (shouldRemove) return false;
             
             // Random chance to despawn over time (5% per frame)
@@ -276,10 +348,30 @@ const GameCanvas: React.FC = () => {
         
         return updatedParticles;
       });
+      
+      // Update boss projectiles
+      setBossProjectiles(prevProjectiles => {
+        return prevProjectiles
+          .map(projectile => updateBossProjectile(projectile, 16))
+          .filter(projectile => {
+            if (isBossProjectileExpired(projectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+              return false;
+            }
+            
+            // Check collision with rocket
+            const distanceToRocket = calculateDistance(projectile.position, rocketPosition);
+            if (distanceToRocket < 25) {
+              takeDamage(projectile.damage);
+              return false; // Remove projectile after hit
+            }
+            
+            return true;
+          });
+      });
     }, 16);
 
     return () => clearInterval(gameLoop);
-  }, [keys, rocketVelocity.vx, rocketVelocity.vy, rocketPosition, collectResource, takeDamage, rechargeShield, health.shield, health.maxShield, weaponState.energy, weaponState.maxEnergy, fireWeapon, rechargeEnergy]);
+  }, [keys, rocketVelocity.vx, rocketVelocity.vy, rocketPosition, collectResource, takeDamage, rechargeShield, health.shield, health.maxShield, weaponState.energy, weaponState.maxEnergy, fireWeapon, rechargeEnergy, boss]);
 
   if (isDead) {
     return (
@@ -288,6 +380,26 @@ const GameCanvas: React.FC = () => {
           <h1>💀 GAME OVER 💀</h1>
           <p>The alien zombies have destroyed your rocket!</p>
           <button onClick={() => window.location.reload()}>Restart Game</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Victory condition
+  if (boss && boss.health <= 0) {
+    return (
+      <div className="game-canvas">
+        <div className="victory">
+          <h1>🎉 VICTORY! 🎉</h1>
+          <p>You have defeated the Boss and saved the galaxy!</p>
+          <div className="victory-stats">
+            <p>Resources Collected:</p>
+            <p>⚙️ Iron: {Math.floor(inventory.iron)}</p>
+            <p>💎 Crystal: {Math.floor(inventory.crystal)}</p>
+            <p>⚡ Energy: {Math.floor(inventory.energy)}</p>
+            <p>🌟 Rare Metals: {Math.floor(inventory.rare_metals)}</p>
+          </div>
+          <button onClick={() => window.location.reload()}>Play Again</button>
         </div>
       </div>
     );
@@ -320,6 +432,12 @@ const GameCanvas: React.FC = () => {
             isAttacking={attackingZombies.has(zombie.id)}
           />
         ))}
+        {boss && boss.health > 0 && (
+          <BossZombie 
+            boss={boss} 
+            isAttacking={isBossAttacking}
+          />
+        )}
         {projectiles.map(projectile => (
           <Projectile 
             key={projectile.id} 
@@ -344,6 +462,31 @@ const GameCanvas: React.FC = () => {
               pointerEvents: 'none',
               zIndex: 6,
               opacity: particle.opacity
+            }}
+          />
+        ))}
+        {bossProjectiles.map(projectile => (
+          <div
+            key={projectile.id}
+            className={`boss-projectile ${projectile.type}`}
+            style={{
+              position: 'absolute',
+              left: projectile.position.x,
+              top: projectile.position.y,
+              width: projectile.size,
+              height: projectile.size,
+              background: projectile.type === 'energy_blast' ? 
+                'radial-gradient(circle, #FF4500 0%, #FF6500 50%, transparent 100%)' :
+                projectile.type === 'shockwave' ?
+                'radial-gradient(circle, rgba(153,50,204,0.6) 0%, rgba(153,50,204,0.3) 50%, transparent 100%)' :
+                'radial-gradient(circle, #228B22 0%, #32CD32 50%, transparent 100%)',
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 7,
+              boxShadow: projectile.type === 'energy_blast' ? '0 0 10px #FF4500' :
+                         projectile.type === 'shockwave' ? '0 0 15px #9932CC' :
+                         '0 0 8px #228B22'
             }}
           />
         ))}

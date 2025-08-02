@@ -182,3 +182,81 @@ export const WEAPON_CONFIG = {
     name: 'Flamethrower'
   }
 };
+
+export interface BossZombie {
+  id: string;
+  position: Position;
+  velocity: Velocity;
+  health: number;
+  maxHealth: number;
+  phase: 1 | 2 | 3 | 4;
+  speed: number;
+  damage: number;
+  attackRange: number;
+  lastAttack: number;
+  attackCooldown: number;
+  target: Position | null;
+  state: 'spawning' | 'idle' | 'moving' | 'attacking' | 'phase_transition' | 'dead';
+  phaseTimer: number;
+  nextPhaseThreshold: number;
+}
+
+export interface BossProjectile {
+  id: string;
+  position: Position;
+  velocity: Velocity;
+  damage: number;
+  lifetime: number;
+  size: number;
+  type: 'energy_blast' | 'poison_spit' | 'shockwave';
+}
+
+export const BOSS_CONFIG = {
+  maxHealth: 500,
+  phases: {
+    1: {
+      emoji: '👹',
+      name: 'Brute Force',
+      healthThreshold: 375, // 75% health
+      speed: 1.2,
+      damage: 30,
+      attackRange: 40,
+      attackCooldown: 1500,
+      color: '#8B0000',
+      description: 'Basic melee attacks'
+    },
+    2: {
+      emoji: '🦾',
+      name: 'Ranged Assault',
+      healthThreshold: 250, // 50% health
+      speed: 0.8,
+      damage: 25,
+      attackRange: 120,
+      attackCooldown: 2000,
+      color: '#FF4500',
+      description: 'Shoots energy projectiles'
+    },
+    3: {
+      emoji: '🌪️',
+      name: 'Area Devastation',
+      healthThreshold: 125, // 25% health
+      speed: 0.6,
+      damage: 35,
+      attackRange: 80,
+      attackCooldown: 3000,
+      color: '#9932CC',
+      description: 'Creates damaging shockwaves'
+    },
+    4: {
+      emoji: '💀',
+      name: 'Final Rage',
+      healthThreshold: 0, // Until death
+      speed: 1.8,
+      damage: 40,
+      attackRange: 100,
+      attackCooldown: 800,
+      color: '#FF0000',
+      description: 'Combines all attack types'
+    }
+  }
+};
