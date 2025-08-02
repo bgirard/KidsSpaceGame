@@ -160,7 +160,7 @@ export const createBossProjectile = (
   const speed = projectileType === 'shockwave' ? 6 : 4;
   
   return {
-    id: `boss-projectile-${Date.now()}`,
+    id: `boss-projectile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     position: { ...boss.position },
     velocity: {
       vx: distance > 0 ? (dx / distance) * speed : 0,

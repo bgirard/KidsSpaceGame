@@ -39,7 +39,7 @@ export const createFlameParticles = (
     const speed = config.speed * (0.7 + Math.random() * 0.6); // Varying speeds
     
     particles.push({
-      id: `flame-${Date.now()}-${i}`,
+      id: `flame-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
       position: { 
         x: startPosition.x + (Math.random() - 0.5) * 10,
         y: startPosition.y + (Math.random() - 0.5) * 10

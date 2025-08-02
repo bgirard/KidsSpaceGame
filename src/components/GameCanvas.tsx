@@ -41,6 +41,9 @@ const GameCanvas: React.FC = () => {
   const ROTATION_SPEED = 5;
   const FRICTION = 0.98;
   const COLLECTION_RATE = 2;
+  const MAX_PROJECTILES = 50; // Limit total projectiles
+  const MAX_FLAME_PARTICLES = 100; // Limit total flame particles
+  const MAX_BOSS_PROJECTILES = 20; // Limit boss projectiles
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     setKeys(prev => new Set(prev).add(event.code));
@@ -94,25 +97,41 @@ const GameCanvas: React.FC = () => {
             }
             
             if (keys.has('Space')) {
-              if (fireWeapon(WeaponType.LASER)) {
+              if (fireWeapon(WeaponType.LASER) && projectiles.length < MAX_PROJECTILES) {
                 const newProjectile = createProjectile(
                   WeaponType.LASER,
                   rocketPosition,
                   newAngle,
-                  `laser-${Date.now()}`
+                  `laser-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
                 );
-                setProjectiles(prev => [...prev, newProjectile]);
+                setProjectiles(prev => {
+                  // Filter out dead projectiles first
+                  const alive = prev.filter(p => 
+                    !isProjectileOutOfBounds(p, CANVAS_WIDTH, CANVAS_HEIGHT) && 
+                    p.lifetime > 0
+                  );
+                  return [...alive, newProjectile];
+                });
               }
             }
             
             if (keys.has('KeyF')) {
-              if (fireWeapon(WeaponType.FLAME)) {
+              if (fireWeapon(WeaponType.FLAME) && flameParticles.length < MAX_FLAME_PARTICLES) {
                 const newFlameParticles = createFlameParticles(
                   rocketPosition,
                   newAngle,
                   5
                 );
-                setFlameParticles(prev => [...prev, ...newFlameParticles]);
+                setFlameParticles(prev => {
+                  // Filter out dead flame particles first
+                  const alive = prev.filter(p => 
+                    !isFlameParticleExpired(p) && 
+                    p.opacity > 0.1 &&
+                    p.position.x >= 0 && p.position.x <= CANVAS_WIDTH &&
+                    p.position.y >= 0 && p.position.y <= CANVAS_HEIGHT
+                  );
+                  return [...alive, ...newFlameParticles];
+                });
               }
             }
 
@@ -229,13 +248,29 @@ const GameCanvas: React.FC = () => {
                 // Phase 1: Direct damage
                 takeDamage(updatedBoss.damage);
               } else if (updatedBoss.phase === 2 || updatedBoss.phase === 4) {
-                // Phase 2 & 4: Shoot projectiles
-                const projectile = createBossProjectile(updatedBoss, rocketPosition, 'energy_blast');
-                setBossProjectiles(prev => [...prev, projectile]);
+                // Phase 2 & 4: Shoot projectiles (with limit)
+                if (bossProjectiles.length < MAX_BOSS_PROJECTILES) {
+                  const projectile = createBossProjectile(updatedBoss, rocketPosition, 'energy_blast');
+                  setBossProjectiles(prev => {
+                    // Filter out dead boss projectiles first
+                    const alive = prev.filter(p => 
+                      !isBossProjectileExpired(p, CANVAS_WIDTH, CANVAS_HEIGHT)
+                    );
+                    return [...alive, projectile];
+                  });
+                }
               } else if (updatedBoss.phase === 3 || updatedBoss.phase === 4) {
-                // Phase 3 & 4: Area damage shockwave
-                const shockwave = createBossProjectile(updatedBoss, rocketPosition, 'shockwave');
-                setBossProjectiles(prev => [...prev, shockwave]);
+                // Phase 3 & 4: Area damage shockwave (with limit)
+                if (bossProjectiles.length < MAX_BOSS_PROJECTILES) {
+                  const shockwave = createBossProjectile(updatedBoss, rocketPosition, 'shockwave');
+                  setBossProjectiles(prev => {
+                    // Filter out dead boss projectiles first
+                    const alive = prev.filter(p => 
+                      !isBossProjectileExpired(p, CANVAS_WIDTH, CANVAS_HEIGHT)
+                    );
+                    return [...alive, shockwave];
+                  });
+                }
               }
               
               updatedBoss = bossAttack(updatedBoss);
@@ -297,6 +332,11 @@ const GameCanvas: React.FC = () => {
           }
         });
         
+        // Debug: log projectile count changes
+        if (prevProjectiles.length !== survivingProjectiles.length) {
+          console.log(`Projectiles: ${prevProjectiles.length} -> ${survivingProjectiles.length}`);
+        }
+        
         return survivingProjectiles;
       });
       
@@ -351,7 +391,7 @@ const GameCanvas: React.FC = () => {
       
       // Update boss projectiles
       setBossProjectiles(prevProjectiles => {
-        return prevProjectiles
+        const updatedBossProjectiles = prevProjectiles
           .map(projectile => updateBossProjectile(projectile, 16))
           .filter(projectile => {
             if (isBossProjectileExpired(projectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
@@ -367,6 +407,13 @@ const GameCanvas: React.FC = () => {
             
             return true;
           });
+          
+        // Debug: log boss projectile count changes
+        if (prevProjectiles.length !== updatedBossProjectiles.length) {
+          console.log(`Boss projectiles: ${prevProjectiles.length} -> ${updatedBossProjectiles.length}`);
+        }
+        
+        return updatedBossProjectiles;
       });
     }, 16);
 
