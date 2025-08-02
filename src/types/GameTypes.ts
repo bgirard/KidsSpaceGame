@@ -176,7 +176,7 @@ export const WEAPON_CONFIG = {
     damage: 15,
     cooldown: 100,
     speed: 4,
-    lifetime: 600,
+    lifetime: 400,
     size: 6,
     color: '#ff4500',
     name: 'Flamethrower'

@@ -158,8 +158,19 @@ const GameCanvas: React.FC = () => {
       });
       
       setZombies(prevZombies => {
-        return prevZombies.map(zombie => {
-          if (zombie.health <= 0) return zombie;
+        const updatedZombies: AlienZombieType[] = [];
+        
+        prevZombies.forEach(zombie => {
+          if (zombie.health <= 0) {
+            // Remove dead zombies from attacking set
+            setAttackingZombies(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(zombie.id);
+              return newSet;
+            });
+            console.log('Removing dead zombie from game');
+            return; // Don't add to updated array
+          }
           
           let updatedZombie = updateZombieAI(zombie, rocketPosition, 16);
           updatedZombie = updateZombiePosition(updatedZombie, 16, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -181,8 +192,10 @@ const GameCanvas: React.FC = () => {
             }
           }
           
-          return updatedZombie;
+          updatedZombies.push(updatedZombie);
         });
+        
+        return updatedZombies;
       });
       
       if (health.shield < health.maxShield) {
@@ -194,47 +207,74 @@ const GameCanvas: React.FC = () => {
       }
       
       setProjectiles(prevProjectiles => {
-        return prevProjectiles
-          .map(projectile => updateProjectile(projectile, 16))
-          .filter(projectile => {
-            if (isProjectileOutOfBounds(projectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
-              return false;
-            }
-            
-            let hit = false;
-            setZombies(prevZombies => {
-              return prevZombies.map(zombie => {
-                if (checkProjectileZombieCollision(projectile, zombie)) {
-                  hit = true;
-                  return damageZombie(zombie, projectile.damage);
-                }
-                return zombie;
-              });
+        const survivingProjectiles: ProjectileType[] = [];
+        
+        prevProjectiles.forEach(projectile => {
+          const updatedProjectile = updateProjectile(projectile, 16);
+          
+          // Remove if out of bounds or expired
+          if (isProjectileOutOfBounds(updatedProjectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+            return;
+          }
+          
+          let hit = false;
+          setZombies(prevZombies => {
+            return prevZombies.map(zombie => {
+              if (checkProjectileZombieCollision(updatedProjectile, zombie) && zombie.health > 0) {
+                hit = true;
+                return damageZombie(zombie, updatedProjectile.damage);
+              }
+              return zombie;
             });
-            
-            return !hit;
           });
+          
+          // Only keep projectile if it didn't hit anything
+          if (!hit) {
+            survivingProjectiles.push(updatedProjectile);
+          }
+        });
+        
+        return survivingProjectiles;
       });
       
       setFlameParticles(prevParticles => {
-        return prevParticles
+        const updatedParticles = prevParticles
           .map(particle => updateFlameParticle(particle, 16))
           .filter(particle => {
-            if (isFlameParticleExpired(particle)) {
+            // Remove if expired, out of bounds, or very low opacity
+            if (isFlameParticleExpired(particle) || 
+                particle.position.x < 0 || particle.position.x > CANVAS_WIDTH ||
+                particle.position.y < 0 || particle.position.y > CANVAS_HEIGHT ||
+                particle.opacity <= 0.1) {
               return false;
             }
             
+            // Check collision with zombies
+            let shouldRemove = false;
             setZombies(prevZombies => {
               return prevZombies.map(zombie => {
-                if (checkFlameZombieCollision(particle, zombie)) {
-                  return damageZombie(zombie, particle.damage / 10); // Reduced damage per tick
+                if (checkFlameZombieCollision(particle, zombie) && zombie.health > 0) {
+                  shouldRemove = Math.random() < 0.7; // 70% chance to remove on hit
+                  return damageZombie(zombie, particle.damage / 8);
                 }
                 return zombie;
               });
             });
             
-            return true; // Flame particles don't disappear on hit
+            if (shouldRemove) return false;
+            
+            // Random chance to despawn over time (5% per frame)
+            if (Math.random() < 0.05) return false;
+            
+            return true;
           });
+        
+        // Debug: log particle count changes
+        if (prevParticles.length !== updatedParticles.length) {
+          console.log(`Flame particles: ${prevParticles.length} -> ${updatedParticles.length}`);
+        }
+        
+        return updatedParticles;
       });
     }, 16);
 
@@ -271,7 +311,9 @@ const GameCanvas: React.FC = () => {
             isBeingCollected={collectedNodes.has(node.id)}
           />
         ))}
-        {zombies.map(zombie => (
+        {zombies
+          .filter(zombie => zombie.health > 0)
+          .map(zombie => (
           <AlienZombie 
             key={zombie.id} 
             zombie={zombie} 
@@ -284,7 +326,9 @@ const GameCanvas: React.FC = () => {
             projectile={projectile}
           />
         ))}
-        {flameParticles.map(particle => (
+        {flameParticles
+          .filter(particle => particle.opacity > 0.1 && particle.lifetime > 0)
+          .map(particle => (
           <div
             key={particle.id}
             className="flame-particle"
@@ -298,7 +342,8 @@ const GameCanvas: React.FC = () => {
               borderRadius: '50%',
               transform: 'translate(-50%, -50%)',
               pointerEvents: 'none',
-              zIndex: 6
+              zIndex: 6,
+              opacity: particle.opacity
             }}
           />
         ))}

@@ -14,7 +14,7 @@ const Rocket: React.FC<RocketProps> = ({ x, y, angle }) => {
       style={{
         left: x,
         top: y,
-        transform: `rotate(${angle}deg)`
+        transform: `translate(-50%, -50%) rotate(${angle - 45}deg)`
       }}
     >
       🚀

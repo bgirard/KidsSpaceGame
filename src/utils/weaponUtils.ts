@@ -77,11 +77,11 @@ export const updateFlameParticle = (particle: FlameParticle, deltaTime: number):
       y: particle.position.y + particle.velocity.vy
     },
     velocity: {
-      vx: particle.velocity.vx * 0.98, // Slow down over time
-      vy: particle.velocity.vy * 0.98
+      vx: particle.velocity.vx * 0.95, // Slow down faster
+      vy: particle.velocity.vy * 0.95
     },
     lifetime: particle.lifetime - deltaTime,
-    opacity: Math.max(0, particle.opacity - 0.01)
+    opacity: Math.max(0, particle.opacity - 0.03) // Fade even faster
   };
 };
 
@@ -124,5 +124,5 @@ export const isProjectileOutOfBounds = (
 };
 
 export const isFlameParticleExpired = (particle: FlameParticle): boolean => {
-  return particle.lifetime <= 0 || particle.opacity <= 0;
+  return particle.lifetime <= 0 || particle.opacity <= 0.2;
 };
