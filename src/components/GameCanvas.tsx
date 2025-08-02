@@ -38,7 +38,7 @@ const GameCanvas: React.FC = () => {
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
   const THRUST_POWER = 0.5;
-  const ROTATION_SPEED = 5;
+  const ROTATION_SPEED = 2.5;
   const FRICTION = 0.98;
   const COLLECTION_RATE = 2;
   const MAX_PROJECTILES = 50; // Limit total projectiles
@@ -295,23 +295,24 @@ const GameCanvas: React.FC = () => {
       
       setProjectiles(prevProjectiles => {
         const survivingProjectiles: ProjectileType[] = [];
+        const hitProjectileIds = new Set<string>();
         
-        prevProjectiles.forEach(projectile => {
-          const updatedProjectile = updateProjectile(projectile, 16);
-          
-          // Remove if out of bounds or expired
-          if (isProjectileOutOfBounds(updatedProjectile, CANVAS_WIDTH, CANVAS_HEIGHT)) {
-            return;
-          }
-          
+        // First pass: update positions and check bounds
+        const updatedProjectiles = prevProjectiles
+          .map(projectile => updateProjectile(projectile, 16))
+          .filter(projectile => !isProjectileOutOfBounds(projectile, CANVAS_WIDTH, CANVAS_HEIGHT));
+        
+        // Second pass: check collisions and mark hits
+        updatedProjectiles.forEach(projectile => {
           let hit = false;
           
           // Check collision with regular zombies
           setZombies(prevZombies => {
             return prevZombies.map(zombie => {
-              if (checkProjectileZombieCollision(updatedProjectile, zombie) && zombie.health > 0) {
+              if (!hit && checkProjectileZombieCollision(projectile, zombie) && zombie.health > 0) {
                 hit = true;
-                return damageZombie(zombie, updatedProjectile.damage);
+                hitProjectileIds.add(projectile.id);
+                return damageZombie(zombie, projectile.damage);
               }
               return zombie;
             });
@@ -319,22 +320,23 @@ const GameCanvas: React.FC = () => {
           
           // Check collision with boss
           if (!hit && boss && boss.health > 0) {
-            const distanceToBoss = calculateDistance(updatedProjectile.position, boss.position);
+            const distanceToBoss = calculateDistance(projectile.position, boss.position);
             if (distanceToBoss < 40) { // Boss has larger hit radius
               hit = true;
-              setBoss(prevBoss => prevBoss ? damageBoss(prevBoss, updatedProjectile.damage) : null);
+              hitProjectileIds.add(projectile.id);
+              setBoss(prevBoss => prevBoss ? damageBoss(prevBoss, projectile.damage) : null);
             }
           }
           
           // Only keep projectile if it didn't hit anything
           if (!hit) {
-            survivingProjectiles.push(updatedProjectile);
+            survivingProjectiles.push(projectile);
           }
         });
         
         // Debug: log projectile count changes
         if (prevProjectiles.length !== survivingProjectiles.length) {
-          console.log(`Projectiles: ${prevProjectiles.length} -> ${survivingProjectiles.length}`);
+          console.log(`Projectiles: ${prevProjectiles.length} -> ${survivingProjectiles.length} (${hitProjectileIds.size} hits)`);
         }
         
         return survivingProjectiles;
@@ -356,8 +358,8 @@ const GameCanvas: React.FC = () => {
             let shouldRemove = false;
             setZombies(prevZombies => {
               return prevZombies.map(zombie => {
-                if (checkFlameZombieCollision(particle, zombie) && zombie.health > 0) {
-                  shouldRemove = Math.random() < 0.7; // 70% chance to remove on hit
+                if (!shouldRemove && checkFlameZombieCollision(particle, zombie) && zombie.health > 0) {
+                  shouldRemove = Math.random() < 0.8; // 80% chance to remove on hit
                   return damageZombie(zombie, particle.damage / 8);
                 }
                 return zombie;
@@ -368,7 +370,7 @@ const GameCanvas: React.FC = () => {
             if (!shouldRemove && boss && boss.health > 0) {
               const distanceToBoss = calculateDistance(particle.position, boss.position);
               if (distanceToBoss < 45) { // Boss flame collision
-                shouldRemove = Math.random() < 0.5; // 50% chance to remove on boss hit
+                shouldRemove = Math.random() < 0.6; // 60% chance to remove on boss hit
                 setBoss(prevBoss => prevBoss ? damageBoss(prevBoss, particle.damage / 10) : null);
               }
             }
